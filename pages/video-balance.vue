@@ -38,7 +38,7 @@ useHead({
 })
 
 // Video source
-const videoSrc = ref('/bbb_sunflower_1080p_30fps_normal.mp4.30sec.webm');
+const videoSrc = ref('./bbb_sunflower_1080p_30fps_normal.mp4.30sec.webm');
 const videoRef = ref(null);
 const audioContext = ref(null);
 const sourceNode = ref(null);
