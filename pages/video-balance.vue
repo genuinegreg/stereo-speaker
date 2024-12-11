@@ -1,32 +1,25 @@
 <template>
     <div class="video-player">
-        <video ref="videoRef" :src="videoSrc" @play="onPlay" @pause="onPause" controls></video>
+        <video ref="videoRef" :src="videoSrc" @play="onPlay" @pause="onPause" controls loop autoplay></video>
 
-        <div class="pan-control">
-            <label>Stereo Pan: {{ panValue.toFixed(2) }}</label>
-            <input type="range" min="-1" max="1" step="0.01" :value="panValue" @input="manualPan" class="w-full" />
+        <div class="overlay">
+            <div class="pan-control">
+                <label>Stereo Pan: {{ panValue.toFixed(2) }}</label>
+                <input type="range" min="-1" max="1" step="0.01" :value="panValue" @input="manualPan" class="w-full" />
 
-            <div class="resume-control" v-if="!isAutoPanning">
-                <button @click="resumeAutoPan" class="resume-button">
-                    Resume Auto Balance
-                </button>
+                <div class="resume-control" v-if="!isAutoPanning">
+                    <button @click="resumeAutoPan" class="resume-button">
+                        Resume Auto Balance
+                    </button>
+                </div>
+            </div>
+
+            <div class="countdown-bar" v-if="isAutoPanning">
+                <div class="countdown-progress"
+                    :style="{ width: `${countdownProgress}%`, backgroundColor: countdownColor }"></div>
             </div>
         </div>
 
-        <div class="countdown-bar" v-if="isAutoPanning">
-            <div class="countdown-progress"
-                :style="{ width: `${countdownProgress}%`, backgroundColor: countdownColor }"></div>
-        </div>
-
-        <div class="record-controls">
-            <button @click="startRecording" :disabled="isRecording" class="record-button">
-                Start Recording
-            </button>
-            <button @click="stopRecording" :disabled="!isRecording" class="stop-button">
-                Stop Recording
-            </button>
-            <a ref="downloadLink" style="display: none;">Download Recording</a>
-        </div>
     </div>
 </template>
 
@@ -52,12 +45,6 @@ const countdownColor = ref('#4CAF50');
 const animationFrameId = ref(null);
 const panSwitchTime = ref(0);
 const SWITCH_INTERVAL = 4000; // 4 seconds
-
-// Recording-related refs
-const isRecording = ref(false);
-const mediaRecorder = ref(null);
-const recordedChunks = ref([]);
-const downloadLink = ref(null);
 
 onMounted(() => {
     // Initialize Web Audio API
@@ -146,38 +133,6 @@ const resumeAutoPan = () => {
     startCountdown();
 };
 
-const startRecording = async () => {
-    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-    recordedChunks.value = [];
-
-    mediaRecorder.value = new MediaRecorder(stream, { mimeType: 'video/webm' });
-
-    mediaRecorder.value.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-            recordedChunks.value.push(event.data);
-        }
-    };
-
-    mediaRecorder.value.onstop = () => {
-        const blob = new Blob(recordedChunks.value, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-
-        downloadLink.value.href = url;
-        downloadLink.value.download = 'recording.webm';
-        downloadLink.value.style.display = 'block';
-    };
-
-    mediaRecorder.value.start();
-    isRecording.value = true;
-};
-
-const stopRecording = () => {
-    if (mediaRecorder.value) {
-        mediaRecorder.value.stop();
-    }
-    isRecording.value = false;
-};
-
 onUnmounted(() => {
     if (animationFrameId.value) {
         cancelAnimationFrame(animationFrameId.value);
@@ -192,12 +147,34 @@ onUnmounted(() => {
 
 <style scoped>
 .video-player {
-    max-width: 600px;
     margin: 0 auto;
-}
-
-video {
-    width: 100%;
+        max-width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+    
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    
+    }
+    
+    .overlay {
+        display: flex;
+        max-width: 600px;
+        flex-direction: column;
+        justify-content: center;
+        align-items: stretch;
+    }
+    
+    video {
+        z-index: -1;
+        width: 100%;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    
+        object-fit: cover;
 }
 
 .pan-control {
@@ -242,34 +219,5 @@ video {
 
 .resume-button:hover {
     background-color: #45a049;
-}
-
-.record-controls {
-    margin-top: 20px;
-    text-align: center;
-}
-
-.record-button,
-.stop-button {
-    background-color: #f44336;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin: 5px;
-    transition: background-color 0.3s ease;
-}
-
-.record-button:hover {
-    background-color: #e53935;
-}
-
-.stop-button {
-    background-color: #2196F3;
-}
-
-.stop-button:hover {
-    background-color: #1e88e5;
 }
 </style>
